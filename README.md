@@ -13,11 +13,13 @@
 0. 安裝 node
 <br/>
 
-1.`git remote add origin https://github.com/tommygood/Online-Soccer-Game.git`
+1.`mkdir soccer`
 <br/>
 2.`cd soccer`
 <br/>
-3.`node test.js`
+3.`git remote add origin https://github.com/tommygood/Online-Soccer-Game.git`
+<br/>
+4.`node test.js`
 <h2>實際遊玩</h2>
 <image src = "https://github.com/tommygood/Online-Soccer-Game/blob/master/output.gif"></image>
 <br/>
