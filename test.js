@@ -37,11 +37,11 @@ left_point = 0;
 right_point = 0;
 io.on('connection', (socket) => {
     socket.on('disconnect', () => {
-        //console.log(total_player);
-        io.emit("logout_msg", total_player);
         if (total_player > 0) {
             total_player -= 1;
         }
+        console.log("有玩家登出，剩餘玩家 " + total_player);
+        io.emit("logout_msg", total_player);
     });
     
     socket.on("docMsg", (msg) => {
@@ -53,6 +53,7 @@ io.on('connection', (socket) => {
         //console.log(msg);
         left_point = msg.goal[0];
         right_point = msg.goal[1];
+        io.emit("is_goal", msg);
     });
     
     socket.on("loginMsg", (msg) => {

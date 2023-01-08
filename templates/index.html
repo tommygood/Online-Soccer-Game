@@ -36,6 +36,7 @@
         <image id = "goal" class = 'rotate_image' width = "400" height = "200" src = "/images/soccer_door.png"></image>
         <image id = "goal_right" class = 'rotate_image_right' width = "400" height = "200" src = "/images/right_goal1.png"></image>
         <span id = 'show_left_point'></span>
+        <b><span id = 'goal_info'></span></b>
         <div id = "button_border">----------------</div>
     </body>
     <style>
@@ -71,11 +72,16 @@
         body {
             background-color : green;
         }
+        
+        #goal_info {
+            margin : 0px 0px 0px 500px;
+        }
     </style>
     <script>
         var player_id;
         var had_login = false;
         var total_player;
+        var lock_back_ball = false; // 球隨機回到一個位置的鎖
         document.addEventListener("DOMContentLoaded", () => { // load message into browser
             socket.on("msg", function (chat_msg) {
                 if (chat_msg.ball_owner != undefined) { // 交換球權
@@ -84,13 +90,14 @@
                     return;
                 }
                 if (chat_msg.shoot) { // 射門
-                    shoot_duration = Date.now() - chat_msg.shoot[0];
-                    console.log("射門時間 " + shoot_duration);
-                    if (chat_msg.shoot[1] > 0) {
-                        shoot(shoot_duration-50, chat_msg.shoot[1]);
+                    const now_time = chat_msg.shoot[2];
+                    shoot_duration = now_time - chat_msg.shoot[0];
+                    console.log("射門時間 " + shoot_duration + ", 現在時間 " + now_time + ", 起始時間" + chat_msg.shoot[0]);
+                    if (chat_msg.shoot[3]) {
+                        shoot(shoot_duration, chat_msg.shoot[1]);
                     }
                     else {
-                        shoot((shoot_duration-50)*-1, chat_msg.shoot[1]);
+                        shoot(shoot_duration*-1, chat_msg.shoot[1]);
                     }
                     lock_until_up = false;
                     ball_owner = 0; // 射門後交出球權
@@ -129,6 +136,7 @@
                     rmRushroom(chat_msg.rushroom_id); // 移除香菇
                     return;
                 }
+                // 同步玩家位置
                 pos_player1 = chat_msg[4];
                 pos_player2 = chat_msg[5];
                 pos_player3 = chat_msg[6];
@@ -163,9 +171,25 @@
                 total_player -= 1; // 總玩家 -1
                 console.log("player id " + chat_msg + " logout.")
             })
+            
+            socket.on("is_goal", function (chat_msg) { // load user id
+                // 球回到隨機點
+                const back_random = setInterval(function () {
+                    if (!lock_back_ball) {
+                        getId('ball').style.marginLeft = chat_msg.ball_random[0];
+                        getId('ball').style.marginTop = chat_msg.ball_random[1];
+                        lock_back_ball = true; // 上鎖
+                    }
+                    clearInterval(back_random);
+                }, 300);
+                lock_back_ball = false; // 解鎖
+            })
         })
         
         function restart() { // 重新開始，重置物件
+            // 球回到原點
+            getId('ball').style.marginLeft = "800px";
+            getId('ball').style.marginTop = "200px";
             // 重置玩家位置
             pos_player1 = [808,67,3];
             pos_player2 = [808,67,3];
@@ -212,7 +236,7 @@
         
         var shoot_duration; // 射門時間
         var lock_until_up = false; // 防止計算射門時間算到重新計算的開始時間
-        function getKey(e) { // 得到輸入鍵
+        function getKey(e) { // 得到輸入鍵            
             socket.emit("docMsg", [player_id, e.keyCode, getId('ball').style.marginTop, getId('ball').style.marginLeft, pos_player1, pos_player2, pos_player3, pos_player4]);
             if (e.keyCode == "68") { // d = 抄球
                 if (player_touch_ball.includes(player_id)) { // 有觸碰到球，交換球權
@@ -265,7 +289,7 @@
                 if (ball_owner == player_id) { // 有球權，可以射門
                     var random_top = (getRandomInt(5) * 0.1); // 隨機往下偏移
                     // 廣播射門
-                    socket.emit("docMsg", {shoot : [shoot_duration, random_top]});
+                    socket.emit("docMsg", {shoot : [shoot_duration, random_top, Date.now(), true]});
                 }
                 // 把射完門的腳還原
                 socket.emit("docMsg", {animate_shoot_rm : true, animate_shoot_para : false, user_id : player_id});
@@ -274,7 +298,7 @@
                 if (ball_owner == player_id) { // 有球權，可以射門
                     var random_top = (getRandomInt(5) * 0.1); // 隨機往下偏移
                     // 廣播射門
-                    socket.emit("docMsg", {shoot : [shoot_duration, random_top*-1]});
+                    socket.emit("docMsg", {shoot : [shoot_duration, random_top*-1, Date.now(), false]});
                 }
                 // 把射完門的腳還原
                 socket.emit("docMsg", {animate_shoot_rm : true, animate_shoot_para : true, user_id : player_id});
@@ -284,6 +308,8 @@
         var left_point = 0;
         var right_point = 0;
         function shoot(shoot_duration, random_top) { // 射門
+            console.log(shoot_duration);
+            console.log("現在時間 " + Date.now());
             var all_shoot = [];
             now_ball = parseInt(outPx(getId('ball').style.marginLeft)); // 球原本位置，去掉 px
             now_ball_top = parseInt(outPx(getId('ball').style.marginTop)); // 球原本位置，去掉 px
@@ -306,7 +332,9 @@
                 else if (now_ball_top > 500) {
                     now_ball_top = 500;
                 }
-                //console.log(getId('ball').style.marginLeft);
+                console.log(now_ball);
+                console.log(now_ball_top);
+                // 射門移動球
                 getId('ball').style.marginLeft = now_ball + 'px';
                 getId('ball').style.marginTop = now_ball_top + 'px';
                 //console.log(getId('ball').style.marginLeft);
@@ -339,6 +367,7 @@
                 }, start_time);
             start_time += 100; // 間隔時間
             var new_ball_pos = ball_pos;
+            console.log()
             new_ball_pos.x += shoot_duration*2;
             new_ball_pos.y += random_top*2;
         }
@@ -379,7 +408,6 @@
                 move_speed = 0; //
             }
             else {
-                console.log(user_id);
                 move_speed = window["pos_player"+user_id][2]; // 移動速度
             }
             if (key == 39) { // 右
@@ -616,12 +644,16 @@
                 if (!goal_lock) { // 不是鎖住的
                     clearInterval(setInterval(function () {}, 100));
                     left_point += 1; // 才算得分
-                    alert('goal！\n左邊球門被攻破！');
-                    socket.emit("isGoal", {goal : [left_point, right_point]});
+                    getId('goal_info').innerHTML = 'goal！\n左邊球門被攻破！'; // 顯示進球
+                    var clear_info = setInterval(function () { // 把進球資訊清空
+                        getId('goal_info').innerHTML = '';
+                        clearInterval(clear_info);
+                    }, 3000);
+                    // 進球後，讓球回到地圖中間，上下是隨機的位置
+                    //const left = getRandomInt(1300);
+                    const top = getRandomInt(600);
+                    socket.emit("isGoal", {goal : [left_point, right_point], ball_random : [800, top]});
                 }
-                // 球回到原點
-                getId('ball').style.marginLeft = "800px";
-                getId('ball').style.marginTop = "200px";
                 ball_owner = 0;
                 goal_lock = true;
             }
@@ -633,12 +665,16 @@
                         clearInterval(lock_goal);
                     }, 500);
                     right_point += 1; // 才算得分
-                    alert('goal！\n右邊球門被攻破！');
-                    socket.emit("isGoal", {goal : [left_point, right_point]});
+                    getId('goal_info').innerHTML = 'goal！\n右邊球門被攻破！'; // 顯示進球
+                    var clear_info = setInterval(function () { // 把進球資訊清空
+                        getId('goal_info').innerHTML = '';
+                        clearInterval(clear_info);
+                    }, 3000);
+                    // 進球後，讓球回到地圖中間，上下是隨機的位置
+                    //const left = getRandomInt(1300);
+                    const top = getRandomInt(600);
+                    socket.emit("isGoal", {goal : [left_point, right_point], ball_random : [800, top]});
                 }
-                // 球回到原點
-                getId('ball').style.marginLeft = "800px";
-                getId('ball').style.marginTop = "200px";
                 ball_owner = 0;
                 goal_lock = true;
             }
