@@ -175,11 +175,12 @@
             socket.on("is_goal", function (chat_msg) { // load user id
                 // 球回到隨機點
                 const back_random = setInterval(function () {
-                    if (!lock_back_ball) {
+                    if (!lock_back_ball && chat_msg.ball_random[0] == 800) { // bug prevent
                         getId('ball').style.marginLeft = chat_msg.ball_random[0];
                         getId('ball').style.marginTop = chat_msg.ball_random[1];
                         lock_back_ball = true; // 上鎖
                     }
+                    console.log("隨機 " +chat_msg.ball_random);
                     clearInterval(back_random);
                 }, 300);
                 lock_back_ball = false; // 解鎖
