@@ -185,6 +185,11 @@
                 }, 300);
                 lock_back_ball = false; // 解鎖
             })
+            
+            socket.on("change_point", function (msg) { // 更新比數
+                left_point = msg[0];
+                right_point = msg[1];
+            })
         })
         
         function restart() { // 重新開始，重置物件
@@ -644,37 +649,32 @@
             if (isCollide(getId("goal"), getId("ball"))) {
                 if (!goal_lock) { // 不是鎖住的
                     clearInterval(setInterval(function () {}, 100));
-                    left_point += 1; // 才算得分
                     getId('goal_info').innerHTML = 'goal！\n左邊球門被攻破！'; // 顯示進球
                     var clear_info = setInterval(function () { // 把進球資訊清空
                         getId('goal_info').innerHTML = '';
                         clearInterval(clear_info);
                     }, 3000);
                     // 進球後，讓球回到地圖中間，上下是隨機的位置
-                    //const left = getRandomInt(1300);
                     const top = getRandomInt(600);
-                    socket.emit("isGoal", {goal : [left_point, right_point], ball_random : [800, top]});
+                    socket.emit("isGoal", {goal : [left_point, right_point, false], ball_random : [800, top]});
                 }
                 ball_owner = 0;
                 goal_lock = true;
             }
             // 檢查右球門是否進球
             else if (isCollideRight(getId("goal_right"), getId("ball"))) {
-                console.log(right_point);
                 if (!goal_lock) { // 不是鎖住的
                     var lock_goal = setInterval(function () {
                         clearInterval(lock_goal);
                     }, 500);
-                    right_point += 1; // 才算得分
                     getId('goal_info').innerHTML = 'goal！\n右邊球門被攻破！'; // 顯示進球
                     var clear_info = setInterval(function () { // 把進球資訊清空
                         getId('goal_info').innerHTML = '';
                         clearInterval(clear_info);
                     }, 3000);
                     // 進球後，讓球回到地圖中間，上下是隨機的位置
-                    //const left = getRandomInt(1300);
                     const top = getRandomInt(600);
-                    socket.emit("isGoal", {goal : [left_point, right_point], ball_random : [800, top]});
+                    socket.emit("isGoal", {goal : [left_point, right_point, true], ball_random : [800, top]});
                 }
                 ball_owner = 0;
                 goal_lock = true;
@@ -689,7 +689,7 @@
                     }
                 }
             }
-        }, 100);
+        }, 500);
         
         const rushroom_refresh_time = 10; // 香菇重生時間
         var count_time = rushroom_refresh_time; // 計算過了幾秒，一開始先放一顆香菇

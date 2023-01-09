@@ -35,6 +35,7 @@ var html_home = config.get("server.root")+"templates/";
 total_player = 0;
 left_point = 0;
 right_point = 0;
+goal_lock = false; // 限制時間不能連續進球的鎖
 io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         if (total_player > 0) {
@@ -50,9 +51,23 @@ io.on('connection', (socket) => {
     });
     
     socket.on("isGoal", (msg) => {
-        //console.log(msg);
+        // 左邊得分, 右邊得分
         left_point = msg.goal[0];
         right_point = msg.goal[1];
+        if (!goal_lock) { // 還在上個進球的三秒內
+            if (msg.goal[2]) { // 右邊球門進球
+                right_point += 1; // 右邊得分 +1
+            }
+            else { // 左邊球門進球
+                left_point += 1; // 左邊得分+1
+            }
+            goal_lock = true;
+            var unlock = setInterval(function () { // 三秒後才能重新得分
+                goal_lock = false;
+                clearInterval(unlock);
+            }, 3000);
+        }
+        io.emit('change_point', [left_point, right_point]);
         io.emit("is_goal", msg);
     });
     
