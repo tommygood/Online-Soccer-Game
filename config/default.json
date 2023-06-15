@@ -1,7 +1,5 @@
 {     
     "server": {
-      "db_account": "wang",
-      "db_pwd" : "wang313",
       "root": "C:/Users/tommygood/program/soccer/"
     }
 }
