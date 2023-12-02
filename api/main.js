@@ -17,4 +17,9 @@ router.get('/', function(req, res) {
         return;
 });
 
+router.get('/index.js', function(req, res) {
+    res.sendFile(root + 'js/index.js');  //回應靜態文件
+        return;
+});
+
 module.exports = router;
