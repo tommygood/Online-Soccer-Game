@@ -19,18 +19,7 @@ app.set("views", "jade");
 app.use('/', require('./api/main'));
 app.use(express.static('public')); 
 app.use('/images', express.static('images'));
-const db = require("mariadb");
-const pool = db.createPool({
-    trace : true,
-    host : 'localhost',
-    user : 'wang',
-    password : 'wang313',
-    database : 'soccer'
-});
 
-
-var html_home = config.get("server.root")+"templates/";
-    
 // total player number
 total_player = 0;
 left_point = 0;
